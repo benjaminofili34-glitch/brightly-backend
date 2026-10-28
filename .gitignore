@@ -1,0 +1,14 @@
+# Dependencies (reinstall with npm install)
+node_modules/
+
+# Environment variables and secrets (e.g. a future MongoDB connection string)
+.env
+.env.*
+
+# Logs
+npm-debug.log*
+*.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
