@@ -30,23 +30,26 @@ app.get('/lessons', (req,res)=>{
     res.json(myLesson)
 })
 
+
 app.get('/search', (req, res) => {
     const { q } = req.query;
-    if (!q) {
+
+    if (typeof q !== 'string' || q.trim() === '') {
         return res.status(400).json({
-            error: "Missing search query parameter 'q'"
-        });
-    } else if (q.trim() === "") {
-        return res.status(400).json({
-            error: "Search query parameter 'q' cannot be empty"
+            error: "A non-empty search query 'q' is required"
         });
     }
-    const results = myLesson.filter(lesson => 
-        lesson.topic.toLowerCase().includes(q.toLowerCase()) ||
-        lesson.location.toLowerCase().includes(q.toLowerCase())
+
+    const query = q.trim().toLowerCase();
+
+    const results = myLesson.filter(lesson =>
+        lesson.topic.toLowerCase().includes(query) ||
+        lesson.location.toLowerCase().includes(query)
     );
+
     res.json(results);
 });
+
 
 app.get('/enrolment/:id', (req, res) => {
     const id = Number(req.params.id);
