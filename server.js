@@ -29,6 +29,39 @@ app.get('/lessons', (req,res)=>{
     // console.log(myLesson)
     res.json(myLesson)
 })
+
+app.get('/search', (req, res) => {
+    const { q } = req.query;
+    if (!q) {
+        return res.status(400).json({
+            error: "Missing search query parameter 'q'"
+        });
+    } else if (q.trim() === "") {
+        return res.status(400).json({
+            error: "Search query parameter 'q' cannot be empty"
+        });
+    }
+    const results = myLesson.filter(lesson => 
+        lesson.topic.toLowerCase().includes(q.toLowerCase()) ||
+        lesson.location.toLowerCase().includes(q.toLowerCase())
+    );
+    res.json(results);
+});
+
+app.get('/enrolment/:id', (req, res) => {
+    const id = Number(req.params.id);
+        const lesson = myLesson.find(item => item.id === id);
+
+    if (!lesson) {
+        return res.status(404).json({
+            error: "Lesson not found"
+        });
+    }
+
+    console.log("Lesson found:", lesson);
+    res.json(lesson.totalSpaces - lesson.space);
+});
+
 // POST /orders
 
 // app.post('/orders',(req,res) =>{
