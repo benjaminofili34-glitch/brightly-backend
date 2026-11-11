@@ -14,25 +14,34 @@ The Vue.js frontend lives in its own repository:
 | `cors` | Lets the frontend (on GitHub Pages) call this API from another origin |
 | `morgan` | Logs every request (method, URL, status, size, response time) |
 | `nodemon` | Restarts the server on file changes (`npm run dev`) |
+| `mongodb` | MongoDB native driver |
+| `dotenv` | Loads local environment variables from `.env` |
 
-MongoDB (native driver) has not been added yet; lessons are currently held in memory.
+The server connects to MongoDB before listening. Lesson routes still use the in-memory
+data in `lesson.js`; they do not read from or write to MongoDB yet.
 
 ## Files
 
 | File | What it does |
 |---|---|
 | `server.js` | Express app: middleware, routes and the 404 handlers |
+| `db.js` | Connects to MongoDB using `MONGODB_URI` and closes the client on shutdown |
 | `lesson.js` | The lesson data (12 lessons) exported as an array |
 | `images/` | Lesson photos served at `/images/...` |
 | `package.json` / `package-lock.json` | Dependencies and the `start` / `dev` scripts |
+| `.env.example` | Safe-to-commit template for environment variables |
 
 ## Running locally
 
 ```bash
 npm install
-npm start        # node server.js
+npm start        # node server.js (requires MONGODB_URI in .env)
 npm run dev      # nodemon server.js
 ```
+
+Copy `.env.example` to `.env` and replace the example MongoDB URI with your Atlas
+connection string. Never commit `.env`; it is ignored by Git. If your MongoDB
+username or password contains reserved URI characters, URL-encode them.
 
 The server listens on `process.env.PORT`, or `3000` if it is not set: <http://localhost:3000/>.
 
@@ -53,7 +62,8 @@ The server listens on `process.env.PORT`, or `3000` if it is not set: <http://lo
 - `lesson.js` points each lesson at `/images/lesson-1.jpg` … `/images/lesson-12.jpg`, but the files in
   `images/` are named by subject (`art.jpg`, `chess.jpg`, …). Those lesson image URLs currently return
   the image 404 response.
-- Planned: MongoDB Atlas with the native driver, and deployment to Render.
+- MongoDB connection is configured, but lessons and orders are not persisted yet.
+- Planned: move lesson/order data to MongoDB and deploy to Render.
 
 ## History
 

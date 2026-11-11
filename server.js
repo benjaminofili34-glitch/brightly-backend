@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require("cors");
+const { connectToMongoDB, disconnectFromMongoDB } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -11,6 +12,7 @@ const path = require('path');
 
 app.use(express.json()); 
 let myLesson = require('./lesson.js')
+
 
 
 //  RETURNING STATIC IMAGES with 404 error if not available   
@@ -25,16 +27,18 @@ app.use('/images', (req, res) => {
 app.get('/', (req,res)=>{
     res.json(' Eureka it works')
 })
+
 app.get('/lessons', (req,res)=>{
     // console.log(myLesson)
     res.json(myLesson)
 })
 
 
+
 app.get('/search', (req, res) => {
     const { q } = req.query;
 
-    if (typeof q !== 'string' || q.trim() === '') {
+    if (typeof q !== 'string' || !q.trim()) {
         return res.status(400).json({
             error: "A non-empty search query 'q' is required"
         });
@@ -44,7 +48,9 @@ app.get('/search', (req, res) => {
 
     const results = myLesson.filter(lesson =>
         lesson.topic.toLowerCase().includes(query) ||
-        lesson.location.toLowerCase().includes(query)
+        lesson.location.toLowerCase().includes(query) ||
+        (typeof lesson.teacher === 'string' &&
+            lesson.teacher.toLowerCase().includes(query))
     );
 
     res.json(results);
@@ -72,6 +78,22 @@ app.get('/enrolment/:id', (req, res) => {
 //     console.log(order)
 //     res.json("Order Submitted Successfully")
 // })
+app.post('/lessons', (req, res) => {
+    console.log("Received body:", req.body);
+
+    const newLesson = req.body;
+
+    if (!newLesson.topic || !newLesson.price || !newLesson.space || !newLesson.location) {
+        return res.status(400).json({
+            error: "Missing required lesson fields"
+        });
+    }
+
+    newLesson.id = myLesson.length + 1;
+    myLesson.push(newLesson);
+
+    res.status(201).json(newLesson);
+});
 
 app.post('/orders', (req, res) => {
     console.log("Received body:", req.body);
@@ -135,6 +157,33 @@ app.use((req, res) => {
     res.status(404).json({ error: "404 - Resource not found" });
 });
 
-app.listen(PORT ,() =>{
-    console.log(`server running at http://localhost:${PORT}/`);
-} )
+let server;
+
+async function startServer() {
+    await connectToMongoDB();
+    server = app.listen(PORT, () => {
+        console.log(`server running at http://localhost:${PORT}/`);
+    });
+}
+
+async function shutdown() {
+    try {
+        if (server) {
+            await new Promise((resolve, reject) => {
+                server.close(error => error ? reject(error) : resolve());
+            });
+        }
+        await disconnectFromMongoDB();
+    } catch (error) {
+        console.error("Error while shutting down:", error);
+        process.exitCode = 1;
+    }
+}
+
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
+
+startServer().catch(error => {
+    console.error("Failed to start server:", error);
+    process.exitCode = 1;
+});
