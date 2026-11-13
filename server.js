@@ -28,10 +28,14 @@ app.get('/', (req,res)=>{
     res.json(' Eureka it works')
 })
 
-app.get('/lessons', (req,res)=>{
-    // console.log(myLesson)
-    res.json(myLesson)
-})
+app.get('/lessons', async (req, res) => {
+    try {
+        const lessons = await db.collection('lessons').find().toArray();
+        res.json(lessons);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch lessons" });
+    }
+});
 
 
 
