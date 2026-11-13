@@ -33,6 +33,7 @@ app.get('/lessons', async (req, res) => {
         const lessons = await db.collection('lessons').find().toArray();
         res.json(lessons);
     } catch (error) {
+        console.error("Error fetching lessons:", error);
         res.status(500).json({ error: "Failed to fetch lessons" });
     }
 });
