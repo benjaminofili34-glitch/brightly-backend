@@ -166,6 +166,7 @@ let server;
 
 async function startServer() {
     await connectToMongoDB();
+    db = client.db('brightly');
     server = app.listen(PORT, () => {
         console.log(`server running at http://localhost:${PORT}/`);
     });
