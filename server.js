@@ -11,7 +11,7 @@ app.use(cors());
 const path = require('path');
 
 app.use(express.json()); 
-let myLesson = require('./lesson.js')
+// let myLesson = require('./lesson.js')
 
 
 
@@ -83,24 +83,50 @@ app.get('/enrolment/:id', (req, res) => {
 //     console.log(order)
 //     res.json("Order Submitted Successfully")
 // })
-app.post('/lessons', (req, res) => {
-    console.log("Received body:", req.body);
 
-    const newLesson = req.body;
+app.put('/lessons/:id', async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        console.log("Lesson found (numeric):", id);
+        console.log("Updates received:", req.body);
 
-    if (!newLesson.topic || !newLesson.price || !newLesson.space || !newLesson.location) {
-        return res.status(400).json({
-            error: "Missing required lesson fields"
+        if (req.body.id !== undefined) {
+            return res.status(400).json({
+                error: "Lesson ID cannot be changed"
+            });
+        }
+        
+        if (req.body.space !== undefined && (!Number.isInteger(req.body.space) || req.body.space < 0)) {
+            return res.status(400).json({
+                error: "Spaces must be a non-negative integer"
+            });
+        }
+
+        // Using $eq ensures robust matching across numeric types
+        const result = await db.collection('lessons').updateOne(
+            { id: { $eq: id } },
+            { $set: req.body }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: "Lesson not found"
+            });
+        }
+
+        res.json({ 
+            message: "Lesson updated successfully", 
+            modifiedCount: result.modifiedCount 
         });
+    } catch (error) {
+        console.error("Error updating lesson:", error);
+        res.status(500).json({ error: "Failed to update lesson" });
     }
-
-    newLesson.id = myLesson.length + 1;
-    myLesson.push(newLesson);
-
-    res.status(201).json(newLesson);
 });
 
-app.post('/orders', (req, res) => {
+
+app.post('/orders', async (req, res) => {
+    try {
     console.log("Received body:", req.body);
 
     const order = req.body;
@@ -111,27 +137,24 @@ app.post('/orders', (req, res) => {
             error: "Missing required order details"
         });
     }
-
-    res.status(200).json({
-        message: "Order received for testing. Not saved yet."
+    const result = await db.collection('orders').insertOne(order);
+    res.status(201).json({
+        message: "Order made successfully.",
+        orderId: result.insertedId
     });
-});
+}catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ error: "Failed to create order" });
+}});
 
 // PUT /lessons/:id
 
-app.put('/lessons/:id', (req, res) => {
+app.put('/lessons/:id', async (req, res) => {
+try {
+        const id = Number(req.params.id);
 
-    const id = Number(req.params.id);
 
-    const lesson = myLesson.find(item => item.id === id);
-
-    if (!lesson) {
-        return res.status(404).json({
-            error: "Lesson not found"
-        });
-    }
-
-    console.log("Lesson found:", lesson);
+    console.log("Lesson found:", id);
     console.log("Updates received:", req.body);
 
     if (req.body.id !== undefined) {
@@ -146,9 +169,25 @@ app.put('/lessons/:id', (req, res) => {
         error: "Spaces must be a non-negative integer"
     });
     }
-    Object.assign(lesson, req.body);
+    const result = await db.collection('lessons').updateOne(
+            { id: id },
+            { $set: req.body }
+        );
 
-    res.json(lesson);
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: "Lesson not found"
+            });
+        }
+
+        res.json({ 
+            message: "Lesson updated successfully", 
+            modifiedCount: result.modifiedCount 
+        });
+    } catch (error) {
+        console.error("Error updating lesson:", error);
+        res.status(500).json({ error: "Failed to update lesson" });
+    }
 });
 
 
