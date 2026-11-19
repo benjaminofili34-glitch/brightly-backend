@@ -39,22 +39,35 @@ app.get("/lessons", async (req, res) => {
 
 app.get('/search', async (req, res) => {
     try {
-        const queryStr = req.query.q;
+        const queryStr = (req.query.q || "").toString().trim().toLowerCase();
+
         
         // Handle empty search gracefully
-        if (!queryStr || queryStr.trim() === "") {
+       if (!queryStr) {
             return res.json([]);
         }
 
-        // Query MongoDB using $or and $regex
-        const lessons = await db.collection('lessons').find({
-            $or: [
-                { topic: { $regex: queryStr, $options: 'i' } },
-                { location: { $regex: queryStr, $options: 'i' } }
-            ]
-        }).toArray();
+        const allLessons = await db.collection('lessons').find({}).toArray();
 
-        res.json(lessons);
+        const matchedLessons = allLessons.filter(lesson => {
+            const topicMatch = String(lesson.topic || "").toLowerCase().includes(queryStr);
+            const locationMatch = String(lesson.location || "").toLowerCase().includes(queryStr);
+            const priceMatch = String(lesson.price ?? "").toLowerCase().includes(queryStr);
+            const spaceMatch = String(lesson.space ?? "").toLowerCase().includes(queryStr);
+
+            //Teacher Search
+            // Safely access teacher's first and last name, defaulting to empty strings if not available
+            const firstName = lesson.teacher?.firstName || "";
+            const lastName = lesson.teacher?.lastName || "";
+
+            const teacherName = `${firstName} ${lastName}`.trim().toLowerCase();
+
+            const teacherMatch = teacherName.includes(queryStr);
+
+            return topicMatch || locationMatch || priceMatch || spaceMatch || teacherMatch;
+        });
+
+        res.json(matchedLessons);
     } catch (error) {
         console.error("Error searching lessons:", error);
         res.status(500).json({ error: "Failed to search lessons" });
